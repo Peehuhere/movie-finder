@@ -1,24 +1,35 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import movies from './movies.json'
+
+const popularSearches = ['Dhoom', '3 Idiots', 'Golmaal', 'Bhool Bhulaiyaa', 'Drishyam']
+const genres = [
+  'All',
+  ...new Set(movies.flatMap((movie) => movie.genre.split(',').map((genre) => genre.trim()))),
+].sort((first, second) => first === 'All' ? -1 : second === 'All' ? 1 : first.localeCompare(second))
 
 const App = () => {
 
   const [search, setSearch] = useState('')
+  const [selectedGenre, setSelectedGenre] = useState('All')
   const [searched, setSearched] = useState(false)
   const [results, setResults] = useState([])
   const [selectedMovie, setSelectedMovie] = useState(null)
   const [loading, setLoading] = useState(false)
 
-  const searchMovie = () => {
+  const searchMovie = (query = search, genre = selectedGenre) => {
 
     setLoading(true)
     setSearched(true)
     setSelectedMovie(null)
+    setSearch(query)
 
     setTimeout(() => {
 
+      const normalizedQuery = query.trim().toLowerCase()
       const filteredMovies = movies.filter((movie) => {
-        return movie.title.toLowerCase().includes(search.toLowerCase())
+        const matchesTitle = movie.title.toLowerCase().includes(normalizedQuery)
+        const matchesGenre = genre === 'All' || movie.genre.split(',').some((movieGenre) => movieGenre.trim() === genre)
+        return matchesTitle && matchesGenre
       })
 
       setResults(filteredMovies)
@@ -103,11 +114,51 @@ const App = () => {
 
             <button
               className="search-button"
-              onClick={searchMovie}
+              onClick={() => searchMovie()}
             >
               Search
               <span>→</span>
             </button>
+
+          </div>
+
+          <div className="search-options">
+
+            <div className="search-option-group">
+              <p className="search-option-label">Popular Searches</p>
+              <div className="search-pills">
+                {popularSearches.map((title) => (
+                  <button
+                    key={title}
+                    type="button"
+                    className="search-pill"
+                    onClick={() => searchMovie(title)}
+                  >
+                    {title}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="search-option-group">
+              <p className="search-option-label">Browse by Genre</p>
+              <div className="search-pills">
+                {genres.map((genre) => (
+                  <button
+                    key={genre}
+                    type="button"
+                    className={`search-pill${selectedGenre === genre ? ' active' : ''}`}
+                    aria-pressed={selectedGenre === genre}
+                    onClick={() => {
+                      setSelectedGenre(genre)
+                      searchMovie(search, genre)
+                    }}
+                  >
+                    {genre}
+                  </button>
+                ))}
+              </div>
+            </div>
 
           </div>
 
@@ -152,7 +203,7 @@ const App = () => {
                       </div>
 
                       <span>
-                        "{search}"
+                        {search.trim() ? `"${search.trim()}"` : selectedGenre === 'All' ? 'All movies' : selectedGenre}
                       </span>
 
                     </div>
@@ -235,7 +286,9 @@ const App = () => {
                     </h2>
 
                     <p>
-                      We couldn't find a movie called "{search}".
+                      {search.trim()
+                        ? `No movies found for '${search.trim()}'${selectedGenre === 'All' ? '' : ` in ${selectedGenre}`}. Try another title or browse by genre.`
+                        : `No movies found in ${selectedGenre}. Try another title or browse by genre.`}
                     </p>
 
                   </div>
